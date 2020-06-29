@@ -1,6 +1,7 @@
 const http = require('http');
 const { exec } = require('child_process');
 const { getJson, getOption } = require('./util');
+const { resolve } = require('path');
 
 const repoUpdationData = (id, repoDetails) =>
   JSON.stringify({
@@ -9,6 +10,20 @@ const repoUpdationData = (id, repoDetails) =>
       [id]: JSON.stringify(repoDetails),
     },
   });
+
+const getJobDetails = function (id) {
+  return new Promise((resolve, reject) => {
+    const options = getOption();
+    options.path = `/getField/0/jobs/${id}`;
+    http.get(options, (res) => {
+      if (res.headers['content-type'] === 'application/json; charset=utf-8') {
+        getJson(res).then(({ value }) => {
+          resolve(JSON.parse(value));
+        });
+      }
+    });
+  });
+};
 
 const getRepoDetails = function (id) {
   return new Promise((resolve, rejects) => {
@@ -24,21 +39,22 @@ const getRepoDetails = function (id) {
   });
 };
 
-const runExec = function (link) {
+const runExec = function ({ link, sha, repoId }) {
   return new Promise((resolve) => {
     exec(
-      `rm -rf suit && git clone ${link} suit && cd suit && npm install && npm test && cd .. && rm -rf suit`,
+      `rm -rf suit && git clone ${link} suit && cd suit && git checkout ${sha} && npm install && npm test && cd .. && rm -rf suit`,
       (err) => {
-        resolve(err === null);
+        resolve({ repoId, log: { sha, isPassing: err === null } });
       }
     );
   });
 };
 
-const informDB = function (id, message) {
+const informDB = function (id, message, log) {
   return new Promise((resolve, reject) => {
     getRepoDetails(id).then((repoDetails) => {
       repoDetails.status = message;
+      log && repoDetails.logs.push(log);
       const options = getOption();
       options.method = 'POST';
       options.path = '/setTable/0';
@@ -53,14 +69,14 @@ const informDB = function (id, message) {
 
 const runTest = function (id) {
   return new Promise((resolve, reject) => {
-    getRepoDetails(id)
+    getJobDetails(id)
       .then((data) => {
-        return informDB(id, 'pending').then(() => data.link);
+        return informDB(id, 'pending').then(() => data);
       })
       .then(runExec)
-      .then((status) => {
-        const message = status ? 'passed' : 'failed';
-        informDB(id, message).then(resolve);
+      .then(({ repoId, log }) => {
+        const message = log.isPassing ? 'passed' : 'failed';
+        informDB(repoId, message, log).then(resolve);
       });
   });
 };

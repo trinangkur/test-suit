@@ -4,7 +4,7 @@ const { getJson, getOption } = require('./src/util');
 
 const pullJob = function () {
   const options = getOption();
-  options.path = '/rpop/0/jobs';
+  options.path = '/rpop/0/jobQueue';
   http.get(options, (res) => {
     if (res.headers['content-type'] === 'application/json; charset=utf-8') {
       getJson(res).then(({ value }) => {
