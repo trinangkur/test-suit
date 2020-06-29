@@ -1,4 +1,4 @@
-const http = require('https');
+const https = require('https');
 const { exec } = require('child_process');
 const { getJson, getOption } = require('./util');
 
@@ -14,7 +14,7 @@ const getRepoDetails = function (id) {
   return new Promise((resolve, rejects) => {
     const options = getOption();
     options.path = `/getField/0/repos/${id}`;
-    http.get(options, (res) => {
+    https.get(options, (res) => {
       if (res.headers['content-type'] === 'application/json; charset=utf-8') {
         getJson(res).then(({ value }) => {
           resolve(JSON.parse(value));
@@ -24,12 +24,12 @@ const getRepoDetails = function (id) {
   });
 };
 
-const runExec = function ({ link, sha, repoId }) {
+const runExec = function ({ link, sha, repoId, pushedAt }) {
   return new Promise((resolve) => {
     exec(
       `rm -rf suit && git clone ${link} suit && cd suit && git checkout ${sha} && npm install && npm test && cd .. && rm -rf suit`,
       (err) => {
-        resolve({ repoId, log: { sha, isPassing: err === null } });
+        resolve({ repoId, log: { sha, isPassing: err === null, pushedAt } });
       }
     );
   });
@@ -39,12 +39,16 @@ const informDB = function (id, message, log) {
   return new Promise((resolve, reject) => {
     getRepoDetails(id).then((repoDetails) => {
       repoDetails.status = message;
-      log && repoDetails.logs.push(log);
+      if (log) {
+        repoDetails.logs.push(log);
+        repoDetails.lastPushed = log.pushedAt;
+        repoDetails.lastSha = log.sha;
+      }
       const options = getOption();
       options.method = 'POST';
       options.path = '/setTable/0';
       options.headers['Content-Type'] = 'application/json; charset=utf-8';
-      const request = http.request(options, (res) => {
+      const request = https.request(options, (res) => {
         getJson(res).then(resolve);
       });
       request.end(repoUpdationData(id, repoDetails));

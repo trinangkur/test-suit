@@ -1,11 +1,11 @@
-const http = require('https');
+const https = require('https');
 const runTest = require('./src/runTest');
 const { getJson, getOption } = require('./src/util');
 
 const pullJob = function () {
   const options = getOption();
   options.path = '/rpop/0/jobs';
-  http.get(options, (res) => {
+  https.get(options, (res) => {
     if (res.headers['content-type'] === 'application/json; charset=utf-8') {
       getJson(res).then(({ value }) => {
         if (value) {
