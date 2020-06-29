@@ -1,4 +1,4 @@
-const http = require('http');
+const http = require('https');
 const runTest = require('./src/runTest');
 const { getJson, getOption } = require('./src/util');
 

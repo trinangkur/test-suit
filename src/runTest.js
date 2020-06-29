@@ -1,4 +1,4 @@
-const http = require('http');
+const http = require('https');
 const { exec } = require('child_process');
 const { getJson, getOption } = require('./util');
 
