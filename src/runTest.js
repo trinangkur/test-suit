@@ -1,7 +1,6 @@
 const http = require('http');
 const { exec } = require('child_process');
 const { getJson, getOption } = require('./util');
-const { resolve } = require('path');
 
 const repoUpdationData = (id, repoDetails) =>
   JSON.stringify({
@@ -10,20 +9,6 @@ const repoUpdationData = (id, repoDetails) =>
       [id]: JSON.stringify(repoDetails),
     },
   });
-
-const getJobDetails = function (id) {
-  return new Promise((resolve, reject) => {
-    const options = getOption();
-    options.path = `/getField/0/jobs/${id}`;
-    http.get(options, (res) => {
-      if (res.headers['content-type'] === 'application/json; charset=utf-8') {
-        getJson(res).then(({ value }) => {
-          resolve(JSON.parse(value));
-        });
-      }
-    });
-  });
-};
 
 const getRepoDetails = function (id) {
   return new Promise((resolve, rejects) => {
@@ -67,13 +52,11 @@ const informDB = function (id, message, log) {
   });
 };
 
-const runTest = function (id) {
+const runTest = function (jobDetails) {
+  console.log('running test for-->', jobDetails);
   return new Promise((resolve, reject) => {
-    getJobDetails(id)
-      .then((data) => {
-        return informDB(id, 'pending').then(() => data);
-      })
-      .then(runExec)
+    informDB(jobDetails.repoId, 'pending')
+      .then(() => runExec(jobDetails))
       .then(({ repoId, log }) => {
         const message = log.isPassing ? 'passed' : 'failed';
         informDB(repoId, message, log).then(resolve);
