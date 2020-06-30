@@ -1,5 +1,5 @@
 const https = require('https');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
 const { getJson, getOption } = require('./util');
 
 const userUpdationData = (userName, userDetails) =>
@@ -27,8 +27,9 @@ const getUserDetails = function (userName) {
 const runExec = function ({ link, sha, pushedAt }) {
   return new Promise((resolve) => {
     exec(
-      `rm -rf suit && git clone ${link} suit && cd suit && git checkout ${sha} && npm install && npm test && cd .. && rm -rf suit`,
+      `rm -rf suit && git clone ${link} suit && cd suit && git checkout ${sha} && npm install && npm test`,
       (err) => {
+        execSync('rm -rf suit');
         resolve({ sha, pushedAt, status: err === null });
       }
     );
