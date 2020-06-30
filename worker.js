@@ -9,7 +9,6 @@ const pullJob = function () {
     if (res.headers['content-type'] === 'application/json; charset=utf-8') {
       getJson(res).then(({ value }) => {
         if (value) {
-          console.log('repo num:', value);
           runTest(JSON.parse(value)).then(pullJob);
         } else {
           console.log('waiting');

@@ -2,18 +2,18 @@ const https = require('https');
 const { exec } = require('child_process');
 const { getJson, getOption } = require('./util');
 
-const repoUpdationData = (id, repoDetails) =>
+const userUpdationData = (userName, userDetails) =>
   JSON.stringify({
-    tableName: 'repos',
+    tableName: 'users',
     fields: {
-      [id]: JSON.stringify(repoDetails),
+      [userName]: JSON.stringify(userDetails),
     },
   });
 
-const getRepoDetails = function (id) {
+const getUserDetails = function (userName) {
   return new Promise((resolve, rejects) => {
     const options = getOption();
-    options.path = `/getField/0/repos/${id}`;
+    options.path = `/getField/0/users/${userName}`;
     https.get(options, (res) => {
       if (res.headers['content-type'] === 'application/json; charset=utf-8') {
         getJson(res).then(({ value }) => {
@@ -24,26 +24,21 @@ const getRepoDetails = function (id) {
   });
 };
 
-const runExec = function ({ link, sha, repoId, pushedAt }) {
+const runExec = function ({ link, sha, pushedAt }) {
   return new Promise((resolve) => {
     exec(
       `rm -rf suit && git clone ${link} suit && cd suit && git checkout ${sha} && npm install && npm test && cd .. && rm -rf suit`,
       (err) => {
-        resolve({ repoId, log: { sha, isPassing: err === null, pushedAt } });
+        resolve({ sha, pushedAt, status: err === null });
       }
     );
   });
 };
 
-const informDB = function (id, message, log) {
+const addLog = function (userName, repoName, log) {
   return new Promise((resolve, reject) => {
-    getRepoDetails(id).then((repoDetails) => {
-      repoDetails.status = message;
-      if (log) {
-        repoDetails.logs.push(log);
-        repoDetails.lastPushed = log.pushedAt;
-        repoDetails.lastSha = log.sha;
-      }
+    getUserDetails(userName).then((userDetails) => {
+      userDetails[repoName].push(log);
       const options = getOption();
       options.method = 'POST';
       options.path = '/setTable/0';
@@ -51,20 +46,18 @@ const informDB = function (id, message, log) {
       const request = https.request(options, (res) => {
         getJson(res).then(resolve);
       });
-      request.end(repoUpdationData(id, repoDetails));
+      request.end(userUpdationData(userName, userDetails));
     });
   });
 };
 
 const runTest = function (jobDetails) {
+  const { repoName, userName } = jobDetails;
   console.log('running test for-->', jobDetails);
   return new Promise((resolve, reject) => {
-    informDB(jobDetails.repoId, 'pending')
-      .then(() => runExec(jobDetails))
-      .then(({ repoId, log }) => {
-        const message = log.isPassing ? 'passed' : 'failed';
-        informDB(repoId, message, log).then(resolve);
-      });
+    runExec(jobDetails)
+      .then(addLog.bind(null, userName, repoName))
+      .then(resolve);
   });
 };
 
