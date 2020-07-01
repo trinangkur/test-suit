@@ -39,6 +39,8 @@ const runExec = function ({ link, sha, pushedAt }) {
 const addLog = function (userName, repoName, log) {
   return new Promise((resolve, reject) => {
     getUserDetails(userName).then((userDetails) => {
+      userDetails = userDetails || {};
+      userDetails[repoName] || (userDetails[repoName] = []);
       userDetails[repoName].push(log);
       const options = getOption();
       options.method = 'POST';
