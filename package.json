@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/trinangkur/test-suit/issues"
   },
-  "homepage": "https://github.com/trinangkur/test-suit#readme"
+  "homepage": "https://github.com/trinangkur/test-suit#readme",
+  "dependencies": {
+    "redis": "^3.0.2"
+  }
 }
