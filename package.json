@@ -19,6 +19,6 @@
   },
   "homepage": "https://github.com/trinangkur/test-suit#readme",
   "dependencies": {
-    "redis": "^3.0.2"
+    "redis": "^3.1.1"
   }
 }
